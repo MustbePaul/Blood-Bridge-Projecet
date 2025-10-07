@@ -1,0 +1,11 @@
+Admin:
+Email - phiri6paul@gmail.com
+Password - Admin1
+
+Hospital Staff:
+Email - phiripaul750@gmail.com
+Password - H1@staff
+
+Blood Bank Staff:
+Email - phiripablo6@gmail.com
+Password - B1@staff
