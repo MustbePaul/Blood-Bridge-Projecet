@@ -6,7 +6,7 @@ import Card from '../components/Card';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 interface HospitalRow {
-  hospital_id: string;
+  id: string;
   hospital_name: string;
 }
 
@@ -32,7 +32,7 @@ const Hospitals: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('hospitals')
-        .select('hospital_id, hospital_name')
+        .select('id, hospital_name')
         .order('hospital_name', { ascending: true });
       if (error) throw error;
       setHospitals((data as HospitalRow[]) || []);
@@ -69,7 +69,7 @@ const Hospitals: React.FC = () => {
     const term = search.toLowerCase();
     return hospitals.filter((h) =>
       h.hospital_name.toLowerCase().includes(term) ||
-      h.hospital_id.toLowerCase().includes(term)
+      h.id.toLowerCase().includes(term)
     );
   }, [hospitals, search]);
 
@@ -94,11 +94,11 @@ const Hospitals: React.FC = () => {
       // Uniqueness check (case-insensitive)
       const { data: existing, error: existErr } = await supabase
         .from('hospitals')
-        .select('hospital_id')
+        .select('id')
         .ilike('hospital_name', trimmed)
         .limit(1);
       if (existErr) throw existErr;
-      if (existing && existing.length > 0 && (!editing || existing[0].hospital_id !== editing.hospital_id)) {
+      if (existing && existing.length > 0 && (!editing || existing[0].id !== editing.id)) {
         throw new Error('A hospital with this name already exists.');
       }
 
@@ -106,7 +106,7 @@ const Hospitals: React.FC = () => {
         const { error } = await supabase
           .from('hospitals')
           .update({ hospital_name: trimmed })
-          .eq('hospital_id', editing.hospital_id);
+          .eq('id', editing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
@@ -129,13 +129,13 @@ const Hospitals: React.FC = () => {
 
   const doDelete = async () => {
     if (!deleteTarget) return;
-    const id = deleteTarget.hospital_id;
+    const id = deleteTarget.id;
     setError(null);
     try {
       const { error } = await supabase
         .from('hospitals')
         .delete()
-        .eq('hospital_id', id);
+        .eq('id', id);
       if (error) throw error;
       setDeleteTarget(null);
       await fetchHospitals();
@@ -196,12 +196,12 @@ const Hospitals: React.FC = () => {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
               {filtered.map((h) => (
-                <div key={h.hospital_id} style={{ border: '1px solid #eee', borderRadius: 12, padding: 14, background: '#fff' }}>
+                <div key={h.id} style={{ border: '1px solid #eee', borderRadius: 12, padding: 14, background: '#fff' }}>
                   <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>
                     {h.hospital_name || 'Unnamed Hospital'}
                   </div>
                   <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#777' }}>
-                    ID: {h.hospital_id}
+                    ID: {h.id}
                   </div>
                   {isAdmin && (
                     <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>

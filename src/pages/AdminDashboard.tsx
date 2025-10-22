@@ -116,26 +116,12 @@ const RecentRequests: React.FC<{
               <span style={{ background: getStatusColor(req.status), color: "#fff", padding: "6px 10px", borderRadius: 8, fontSize: 12 }}>
                 {req.status}
               </span>
-              {req.status === "Pending" ? (
-                <button
-                  onClick={() => handleProcessRequest(req.request_id)}
-                  disabled={processingRequestId === req.request_id}
-                  style={{
-                    background: "#FF5252", color: "#fff", border: "none",
-                    padding: "6px 12px", borderRadius: 8,
-                    cursor: processingRequestId === req.request_id ? "not-allowed" : "pointer"
-                  }}
-                >
-                  {processingRequestId === req.request_id ? "Processing…" : "Process"}
-                </button>
-              ) : (
-                <button
+<button
                   onClick={() => navigate(`/request/${req.request_id}`)}
                   style={{ background: "#fff", color: "#FF5252", border: "1px solid #FFCDD2", padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}
                 >
                   View
                 </button>
-              )}
             </div>
           </div>
         ))
@@ -365,14 +351,12 @@ const AdminDashboard: React.FC = () => {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  // -------------------- STAT CARDS --------------------
+// -------------------- STAT CARDS --------------------
+  // System Admin (IT) should see only system-level stats/links
   const statCards = [
     { title: "Total Users", count: statData.totalUsers, color: "#FF7043", icon: "👥", route: "/user-management" },
-    { title: "Blood Requests", count: statData.bloodRequests, color: "#FFA726", icon: "🩸", route: ROUTES.transferStatus },
     { title: "Blood Banks", count: statData.bloodBanks, color: "#FF5252", icon: "🏦", route: "/blood-banks" },
-    { title: "Hospitals", count: statData.hospitals, color: "#EC407A", icon: "🏥", route: "/hospitals" },
-    { title: "Total Units", count: statData.totalUnits, color: "#42A5F5", icon: "🧪", route: "/inventory" },
-    { title: "Blood Types", count: statData.totalTypes, color: "#7E57C2", icon: "🧬", route: "/blood-types" },
+    { title: "Hospitals", count: statData.hospitals, color: "#EC407A", icon: "🏥", route: "/hospitals" }
   ];
 
   if (loading) return (
@@ -399,9 +383,9 @@ const AdminDashboard: React.FC = () => {
             display: "flex", justifyContent: "space-between", alignItems: "center"
           }}>
             <div>
-              <div style={{ fontSize: 22, fontWeight: "bold", color: "#212121" }}>Welcome Admin!</div>
+<div style={{ fontSize: 22, fontWeight: "bold", color: "#212121" }}>Welcome System Admin!</div>
               <div style={{ marginTop: 6, color: "#555" }}>
-                Monitor system-wide activity — <strong>{statData.bloodRequests} requests</strong> and <strong>{statData.totalUnits} units</strong>.
+Manage organizations and users. Use the links below to configure the system.
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
@@ -421,26 +405,22 @@ const AdminDashboard: React.FC = () => {
             {statCards.map(card => <StatCard key={card.title} {...card} navigate={navigate} />)}
           </div>
 
-          {/* Main Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-
-            {/* Left Column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <RecentRequests
-                requests={bloodRequests}
-                processingRequestId={processingRequestId}
-                handleProcessRequest={handleProcessRequest}
-                navigate={navigate}
-              />
-              <BloodTypeChart data={bloodTypeData} />
-            </div>
-
-            {/* Right Column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <AreaChartCard data={areaChartData} />
-              <BarChartCard data={barChartData} />
-            </div>
-
+{/* Admin Management Links (system-level) */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
+            {[ 
+              { title: 'Manage Hospitals', icon: '🏥', route: '/hospitals', color: '#EC407A' },
+              { title: 'Manage Blood Banks', icon: '🏦', route: '/blood-banks', color: '#FF5252' },
+              { title: 'User Management', icon: '👥', route: '/user-management', color: '#FF7043' },
+              { title: 'System Health', icon: '🖥️', route: '/system-health', color: '#7E57C2' },
+              { title: 'Settings', icon: '⚙️', route: '/settings', color: '#42A5F5' }
+            ].map(link => (
+              <div key={link.title} onClick={() => navigate(link.route)}
+                style={{ background: link.color, color: '#fff', padding: 18, borderRadius: 14, cursor: 'pointer', textAlign: 'center' }}
+              >
+                <div style={{ fontSize: 30, marginBottom: 8 }}>{link.icon}</div>
+                <div style={{ fontWeight: 600 }}>{link.title}</div>
+              </div>
+            ))}
           </div>
 
           {/* Error */}

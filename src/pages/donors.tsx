@@ -1,5 +1,7 @@
 // src/pages/Donors.tsx
 import React, { useCallback, useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import supabase from "../utils/supabaseClient";
 
 const Donors: React.FC = () => {
@@ -37,17 +39,15 @@ const Donors: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (name === "date_of_birth") {
-      setIsEligible(calculateEligibility(value));
-    }
+    if (name === "date_of_birth") setIsEligible(calculateEligibility(value));
   };
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
+
       if (!isEligible) {
-        alert("You are not eligible to donate blood based on your age.");
+        toast.warning("You are not eligible to donate blood based on your age.");
         return;
       }
 
@@ -58,7 +58,7 @@ const Donors: React.FC = () => {
         .join(", ");
 
       const donorData = {
-        user_id: null,
+        // Removed user_id completely
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -75,14 +75,13 @@ const Donors: React.FC = () => {
         total_donations: 0,
       };
 
-      console.log("Data to be inserted:", donorData);
-
       try {
         const { data, error } = await supabase.from("donors").insert([donorData]).select("*");
 
         if (error) throw error;
 
         console.log("Form submitted successfully:", data);
+        toast.success("✅ Thank you for registering! Our team will contact you soon.");
         setSubmitted(true);
 
         // Reset form
@@ -107,13 +106,13 @@ const Donors: React.FC = () => {
         console.error("Error submitting form:", err);
 
         if (err.message?.includes("row-level security policy")) {
-          alert("Database security error: Please contact support. RLS INSERT policy may be required.");
+          toast.error("Database security error: RLS INSERT policy may be missing.");
         } else if (err.code === "23505") {
-          alert("This email is already registered. Please use a different email.");
+          toast.error("This email is already registered. Please use a different email.");
         } else if (err.code === "23502") {
-          alert("Missing required information. Please fill in all required fields.");
+          toast.error("Missing required information. Please fill in all required fields.");
         } else {
-          alert(`Error submitting form: ${err.message || "Please try again."}`);
+          toast.error(`Error submitting form: ${err.message || "Please try again."}`);
         }
       } finally {
         setLoading(false);
@@ -133,38 +132,25 @@ const Donors: React.FC = () => {
     boxSizing: "border-box",
     transition: "border 0.3s",
   };
-
   const labelStyle: React.CSSProperties = { display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#555" };
-  const cardStyle: React.CSSProperties = { background: "white", borderRadius: 10, padding: "1.5rem", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", textAlign: "center", transition: "transform 0.3s, box-shadow 0.3s" };
   const sectionStyle: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: "1.5rem", marginTop: "1rem" };
   const fieldStyle: React.CSSProperties = { flex: 1, minWidth: 250 };
-
-  const todayStr = new Date().toISOString().split("T")[0]; // For max date on DOB
+  const todayStr = new Date().toISOString().split("T")[0];
 
   return (
     <div>
-      {/* HEADER */}
-      <header style={{ background: "linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)", color: "white", padding: "2rem 0", textAlign: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem" }}>
-          <div style={{ fontSize: "2.5rem", marginRight: "0.75rem" }}>❤</div>
-          <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>LifeSaver Blood Donation</h1>
-        </div>
+      <ToastContainer position="top-right" autoClose={4000} hideProgressBar />
+      <header style={{ background: "linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)", color: "white", padding: "2rem 0", textAlign: "center" }}>
+        <h1 style={{ fontSize: "2.5rem" }}>❤ LifeSaver Blood Donation</h1>
         <p>Join our community of life-saving heroes</p>
       </header>
 
       <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem" }}>
-        {submitted && (
-          <div role="status" style={{ background: "#e8f5e9", border: "1px solid #4caf50", borderRadius: 6, padding: "1rem", marginBottom: "1.5rem", color: "#256029", opacity: submitted ? 1 : 0, transition: "opacity 0.5s" }}>
-            ✅ Thank you for registering! Our team will contact you soon.
-          </div>
-        )}
-
-        {/* FORM */}
         <section style={{ background: "white", borderRadius: 10, padding: "2rem", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
           <h2 style={{ color: "#d32f2f", marginBottom: "1rem", fontSize: "1.9rem" }}>Become a Blood Donor</h2>
           <form onSubmit={handleSubmit}>
             {/* Personal Info */}
-            <h3 style={{ color: "#d32f2f", marginBottom: "1rem", fontSize: "1.3rem" }}>Personal Information</h3>
+            <h3 style={{ color: "#d32f2f", marginBottom: "1rem" }}>Personal Information</h3>
             <div style={sectionStyle}>
               <div style={fieldStyle}>
                 <label htmlFor="name" style={labelStyle}>Full Name</label>
@@ -185,7 +171,7 @@ const Donors: React.FC = () => {
                 <label htmlFor="date_of_birth" style={labelStyle}>Date of Birth</label>
                 <input id="date_of_birth" name="date_of_birth" type="date" max={todayStr} value={formData.date_of_birth} onChange={handleInputChange} required style={inputStyle} />
                 {formData.date_of_birth && (
-                  <p style={{ color: isEligible ? "green" : "red", marginTop: "0.25rem", fontWeight: 500 }}>
+                  <p style={{ color: isEligible ? "green" : "red", marginTop: "0.25rem" }}>
                     {isEligible ? "You are eligible to donate blood." : "You are NOT eligible to donate blood."}
                   </p>
                 )}
@@ -210,9 +196,6 @@ const Donors: React.FC = () => {
               </div>
             </div>
 
-            {/* ADDRESS, EMERGENCY CONTACT, MEDICAL INFO */}
-            {/* ... keep your existing sections for address, emergency, and medical info ... */}
-
             <button
               type="submit"
               disabled={loading || !isEligible}
@@ -227,20 +210,6 @@ const Donors: React.FC = () => {
                 display: "block",
                 margin: "2rem auto 0",
                 width: 200,
-                opacity: loading ? 0.7 : 1,
-                transition: "background 0.3s ease, transform 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, #b71c1c 0%, #d32f2f 100%)";
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)";
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
-                }
               }}
             >
               {loading ? "Registering..." : "Register Now"}
@@ -249,11 +218,9 @@ const Donors: React.FC = () => {
         </section>
       </main>
 
-      {/* FOOTER */}
       <footer style={{ background: "#333", color: "white", textAlign: "center", padding: "2rem 0", marginTop: "3rem" }}>
         <p>© {new Date().getFullYear()} LifeSaver Blood Donation Program</p>
         <p>Contact us: info@lifesaver.org | (800) 555-LIFE</p>
-        <p>Every blood donor is a hero to someone in need.</p>
       </footer>
     </div>
   );

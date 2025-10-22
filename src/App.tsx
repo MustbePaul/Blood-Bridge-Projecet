@@ -65,7 +65,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.bloodBankDashboard}
           element={
-            <RoleGuard allowedRoles={['blood_bank_staff']}>
+            <RoleGuard allowedRoles={['blood_bank_staff','blood_bank_admin']}>
               <ProtectedLayout>
                 <BloodBankDashboard />
               </ProtectedLayout>
@@ -87,7 +87,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.notifications}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <Notifications />
               </ProtectedLayout>
@@ -97,7 +97,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.settings}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <Settings />
               </ProtectedLayout>
@@ -107,7 +107,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.profile}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <Profile />
               </ProtectedLayout>
@@ -117,7 +117,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.accountSettings}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <AccountSettings />
               </ProtectedLayout>
@@ -129,7 +129,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.inventory}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <InventoryList />
               </ProtectedLayout>
@@ -139,7 +139,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.addInventory}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <AddInventory />
               </ProtectedLayout>
@@ -151,7 +151,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.DonorList}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <DonorList />
               </ProtectedLayout>
@@ -163,7 +163,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.transferStatus}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <TransferStatus />
               </ProtectedLayout>
@@ -173,7 +173,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.transferRequest}
           element={
-            <RoleGuard allowedRoles={['admin', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <TransferRequest />
               </ProtectedLayout>
@@ -181,44 +181,44 @@ const App: React.FC = () => {
           }
         />
         <Route
-        path={ROUTES.orderTracking}
-        element={
-          <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
-            <ProtectedLayout>
-              <OrderTracking />
-            </ProtectedLayout>
-          </RoleGuard>
-        }
+          path={ROUTES.orderTracking}
+          element={
+            <RoleGuard allowedRoles={['hospital_staff']}>
+              <ProtectedLayout>
+                <OrderTracking />
+              </ProtectedLayout>
+            </RoleGuard>
+          }
         />
         <Route
-        path={ROUTES.newRequest}
-        element={
-          <RoleGuard allowedRoles={['hospital_staff']}>
-            <ProtectedLayout>
-              <NewRequest />
-            </ProtectedLayout>
-          </RoleGuard>
-        }
+          path={ROUTES.newRequest}
+          element={
+            <RoleGuard allowedRoles={['hospital_staff']}>
+              <ProtectedLayout>
+                <NewRequest />
+              </ProtectedLayout>
+            </RoleGuard>
+          }
         />
         <Route
-        path={ROUTES.approveRequests}
-        element={
-          <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
-            <ProtectedLayout>
-              <ApproveRequests />
-            </ProtectedLayout>
-          </RoleGuard>
-        }
+          path={ROUTES.approveRequests}
+          element={
+            <RoleGuard allowedRoles={['blood_bank_staff', 'blood_bank_admin']}>
+              <ProtectedLayout>
+                <ApproveRequests />
+              </ProtectedLayout>
+            </RoleGuard>
+          }
         />
         <Route
-        path={ROUTES.requestDetails}
-        element={
-          <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
-            <ProtectedLayout>
-              <RequestDetail />
-            </ProtectedLayout>
-          </RoleGuard>
-        }
+          path={ROUTES.requestDetails}
+          element={
+            <RoleGuard allowedRoles={['hospital_staff', 'blood_bank_staff', 'blood_bank_admin']}>
+              <ProtectedLayout>
+                <RequestDetail />
+              </ProtectedLayout>
+            </RoleGuard>
+          }
         />
         
         
@@ -226,7 +226,7 @@ const App: React.FC = () => {
         <Route
           path="/hospitals"
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin']}>
               <ProtectedLayout>
                 <Hospitals />
               </ProtectedLayout>
@@ -236,7 +236,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.Blood_banks}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin']}>
               <ProtectedLayout>
                 <BloodBanks />
               </ProtectedLayout>
@@ -246,7 +246,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.Bloodtypes}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin']}>
               <ProtectedLayout>
                 <BloodTypes />
               </ProtectedLayout>
@@ -258,7 +258,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.analytics}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin']}>
               <ProtectedLayout>
                 <AnalyticsDashboard />
               </ProtectedLayout>
@@ -268,7 +268,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.systemHealth}
           element={
-            <RoleGuard allowedRoles={['admin', 'hospital_staff', 'blood_bank_staff']}>
+            <RoleGuard allowedRoles={['admin']}>
               <ProtectedLayout>
                 <SystemHealth />
               </ProtectedLayout>
@@ -280,7 +280,7 @@ const App: React.FC = () => {
         <Route
           path={ROUTES.UserManagement}
           element={
-            <RoleGuard allowedRoles={['admin']}>
+            <RoleGuard allowedRoles={['admin', 'blood_bank_admin']}>
               <ProtectedLayout>
                 <UserManagement />
               </ProtectedLayout>

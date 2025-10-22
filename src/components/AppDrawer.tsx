@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Role } from '../rbac/rbac';
+import { ROUTES } from './routes';
 import ConfirmDialog from './ConfirmDialog';
 
 interface AppDrawerProps {
@@ -23,30 +25,52 @@ interface Notification {
   // add other notification properties as needed
 }
 
+// Organized drawer items - Dashboards first, then grouped by functionality
 const drawerItems: DrawerItem[] = [
-  { label: 'Admin Dashboard', icon: '🛠️', path: '/admin-dashboard', roles: ['admin'] },
-  { label: 'Hospital Dashboard', icon: '🏥', path: '/hospital-dashboard', roles: ['hospital_staff'] },
-  { label: 'Blood Bank Dashboard', icon: '🏦', path: '/bloodbank-dashboard', roles: ['blood_bank_staff'] },
-  { label: 'Analytics', icon: '📈', path: '/analytics', roles: ['admin', 'hospital_staff', 'blood_bank_staff'] },
-  { label: 'User Management', icon: '👥', path: '/user-management', roles: ['admin'] },
-  { label: 'Donors', icon: '🧑‍🤝‍🧑', path: '/registered-donors', roles: ['admin', 'hospital_staff', 'blood_bank_staff'] },
-  { label: 'Transfer Status', icon: '🚚', path: '/transfer-status', roles: ['admin', 'hospital_staff', 'blood_bank_staff'] },
-  { label: 'New Transfer', icon: '📤', path: '/transfer-request', roles: ['admin', 'blood_bank_staff'] },
-  { label: 'Inventory', icon: '🩸', path: '/inventory', roles: ['admin', 'hospital_staff', 'blood_bank_staff'] },
-  { label: 'Add Inventory', icon: '➕', path: '/add-inventory', roles: ['admin', 'hospital_staff', 'blood_bank_staff'] },
-  { label: 'New Blood Request', icon: '📝', path: '/new-request', roles: ['hospital_staff'] },
-  { label: 'Notifications', icon: '🔔', path: '/notifications', roles: ['admin', 'hospital_staff', 'blood_bank_staff'], showNotificationCount: true },
-  { label: 'Profile', icon: '👤', path: '/profile', roles: ['admin', 'hospital_staff', 'blood_bank_staff'] },
-  { label: 'Settings', icon: '⚙️', path: '/settings', roles: ['admin', 'hospital_staff', 'blood_bank_staff'] },
+  // === DASHBOARDS (Always at top) ===
+  { label: 'Admin Dashboard', icon: '🛠️', path: ROUTES.adminDashboard, roles: ['admin'] },
+  { label: 'Blood Bank Dashboard', icon: '🏦', path: ROUTES.bloodBankDashboard, roles: ['blood_bank_staff', 'blood_bank_admin'] },
+  { label: 'Hospital Dashboard', icon: '🏥', path: ROUTES.hospitalDashboard, roles: ['hospital_staff'] },
+
+  // === INVENTORY MANAGEMENT ===
+  { label: 'View Inventory', icon: '📦', path: ROUTES.inventory, roles: ['blood_bank_staff','blood_bank_admin','hospital_staff'] },
+  { label: 'Add Inventory', icon: '➕', path: ROUTES.addInventory, roles: ['blood_bank_staff','blood_bank_admin','hospital_staff'] },
+
+  // === BLOOD REQUESTS & TRANSFERS ===
+  { label: 'New Blood Request', icon: '📝', path: ROUTES.newRequest, roles: ['hospital_staff'] },
+  { label: 'New Transfer Request', icon: '📤', path: ROUTES.transferRequest, roles: ['hospital_staff'] },
+  { label: 'Order Tracking', icon: '📦', path: ROUTES.orderTracking, roles: ['hospital_staff'] },
+  { label: 'Approve Requests', icon: '✅', path: ROUTES.approveRequests, roles: ['blood_bank_staff', 'blood_bank_admin'] },
+  { label: 'Transfer Status', icon: '🚚', path: ROUTES.transferStatus, roles: ['hospital_staff','blood_bank_staff', 'blood_bank_admin'] },
+
+  // === DONOR MANAGEMENT ===
+  { label: 'Registered Donors', icon: '👥', path: ROUTES.DonorList, roles: ['blood_bank_staff', 'blood_bank_admin'] },
+
+  // === ADMINISTRATION (System/Org Management) ===
+  { label: 'User Management', icon: '👥', path: ROUTES.UserManagement, roles: ['admin', 'blood_bank_admin'] },
+  { label: 'Hospitals', icon: '🏥', path: '/hospitals', roles: ['admin'] },
+  { label: 'Blood Banks', icon: '🏦', path: ROUTES.Blood_banks, roles: ['admin'] },
+  { label: 'Blood Types', icon: '🧬', path: ROUTES.Bloodtypes, roles: ['admin'] },
+
+  // === ANALYTICS & MONITORING ===
+  { label: 'Analytics', icon: '📈', path: ROUTES.analytics, roles: ['admin'] },
+  { label: 'System Health', icon: '🖥️', path: ROUTES.systemHealth, roles: ['admin'] },
+
+  // === PERSONAL & COMMON ===
+  { label: 'Notifications', icon: '🔔', path: ROUTES.notifications, roles: ['admin','hospital_staff','blood_bank_staff','blood_bank_admin'], showNotificationCount: true },
+  { label: 'Profile', icon: '👤', path: ROUTES.profile, roles: ['admin','hospital_staff','blood_bank_staff','blood_bank_admin'] },
+  { label: 'Settings', icon: '⚙️', path: ROUTES.settings, roles: ['admin','hospital_staff','blood_bank_staff','blood_bank_admin'] },
 ];
 
 const AppDrawer: React.FC<AppDrawerProps> = ({ isOpen, onToggle }) => {
-  const [userRole, setUserRole] = useState('');
+  const [userRole, setUserRole] = useState<Role | ''>('');
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    setUserRole(localStorage.getItem('user_role') || '');
+useEffect(() => {
+    const raw = localStorage.getItem('user_role') || '';
+    // Database stores: 'admin', 'blood_bank_staff', 'hospital_staff', 'donor'
+    setUserRole(raw as Role);
     fetchUnreadNotificationCount();
   }, []);
 
@@ -131,8 +155,60 @@ const AppDrawer: React.FC<AppDrawerProps> = ({ isOpen, onToggle }) => {
     );
   }
 
-  // Filter links by role
+  // Filter links by role and organize into sections
   const linksForRole = drawerItems.filter(item => item.roles.includes(userRole));
+
+  // Function to render drawer sections with separators
+  const renderDrawerSections = (links: DrawerItem[], currentRole: Role | '') => {
+    const sections = [
+      { name: 'DASHBOARDS', items: links.filter(link => link.path.includes('-dashboard')) },
+      { name: 'INVENTORY', items: links.filter(link => link.path.includes('inventory')) },
+      { name: 'REQUESTS & TRANSFERS', items: links.filter(link => 
+        link.path.includes('request') || link.path.includes('transfer') || link.path.includes('approve') || link.path.includes('tracking')
+      ) },
+      { name: 'DONOR MANAGEMENT', items: links.filter(link => link.path.includes('donor')) },
+      { name: 'ADMINISTRATION', items: links.filter(link => 
+        link.path.includes('user-management') || link.path.includes('hospitals') || 
+        link.path.includes('blood-banks') || link.path.includes('blood-types')
+      ) },
+      { name: 'ANALYTICS', items: links.filter(link => 
+        link.path.includes('analytics') || link.path.includes('system-health')
+      ) },
+      { name: 'PERSONAL', items: links.filter(link => 
+        link.path.includes('notification') || link.path.includes('profile') || link.path.includes('settings')
+      ) },
+    ];
+
+    return sections.map((section, index) => {
+      if (section.items.length === 0) return null;
+      
+      return (
+        <div key={section.name}>
+          {index > 0 && section.items.length > 0 && (
+            <div style={{ 
+              fontSize: '11px', 
+              fontWeight: '600', 
+              color: '#999', 
+              padding: '8px 16px 4px', 
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              {section.name}
+            </div>
+          )}
+          {section.items.map(link => (
+            <DrawerLink 
+              key={link.path} 
+              label={link.label} 
+              icon={link.icon} 
+              onClick={() => navAndClose(link.path)}
+              notificationCount={link.showNotificationCount ? unreadNotificationCount : undefined}
+            />
+          ))}
+        </div>
+      );
+    }).filter(Boolean);
+  };
 
   return (
     <>
@@ -149,17 +225,9 @@ const AppDrawer: React.FC<AppDrawerProps> = ({ isOpen, onToggle }) => {
           </div>
 
           <div className="drawer-nav">
-            {linksForRole.map(link => (
-              <DrawerLink 
-                key={link.path} 
-                label={link.label} 
-                icon={link.icon} 
-                onClick={() => navAndClose(link.path)}
-                notificationCount={link.showNotificationCount ? unreadNotificationCount : undefined}
-              />
-            ))}
+            {renderDrawerSections(linksForRole, userRole)}
             <hr />
-            <DrawerLink label="Logout" icon="🚪" onClick={logout} />
+            <DrawerLink label="Logout" icon="🚚" onClick={logout} />
           </div>
         </div>
       </div>

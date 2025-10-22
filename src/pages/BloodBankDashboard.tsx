@@ -7,21 +7,29 @@ import { ROUTES } from '../components/routes';
 
 const BloodBankDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const role = localStorage.getItem('user_role') || '';
 
-  const quickActions = [
+  // Base actions for all blood bank staff
+  const baseActions = [
     { id: 1, title: 'View Inventory', icon: '📦', route: ROUTES.inventory, color: '#4CAF50' },
     { id: 2, title: 'Add Blood Units', icon: '➕', route: ROUTES.addInventory, color: '#FF5252' },
-    { id: 3, title: 'Approve Requests', icon: '✅', route: ROUTES.approveRequests, color: '#2196F3' }, // assuming this is the approve page
+    { id: 3, title: 'Approve Requests', icon: '✅', route: ROUTES.approveRequests, color: '#2196F3' },
     { id: 4, title: 'Transfer Status', icon: '🚚', route: ROUTES.transferStatus, color: '#FF9800' },
     { id: 5, title: 'Donor Management', icon: '👥', route: ROUTES.DonorList, color: '#9C27B0' },
-    { id: 6, title: 'Analytics', icon: '📊', route: ROUTES.analytics, color: '#607D8B' }
   ];
+
+  // Additional actions for blood bank admins
+  const adminExtras = [
+    { id: 6, title: 'Team Management', icon: '👨‍👩‍👧‍👦', route: ROUTES.UserManagement, color: '#607D8B' },
+  ];
+
+  const quickActions = role === 'blood_bank_admin' ? [...baseActions, ...adminExtras] : baseActions;
 
   return (
     <ProtectedLayout>
       <PageHeader
         title="Blood Bank Dashboard"
-        description="Welcome, Blood Bank Staff! Manage inventory and approve blood requests here."
+        description={role === 'blood_bank_admin' ? "Welcome, Blood Bank Admin! Manage your team, inventory, and blood requests." : "Welcome, Blood Bank Staff! Manage inventory and approve blood requests here."}
       />
       
       <Card>

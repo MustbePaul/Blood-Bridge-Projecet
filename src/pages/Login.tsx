@@ -9,7 +9,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
     if (!email || !password) {
       setError('Please enter both email and password');
       return;
@@ -38,21 +38,38 @@ const Login: React.FC = () => {
         throw new Error(profileResult.error?.message || 'Could not fetch user role');
       }
 
-      const userRole = profileResult.data.role;
+      const userRole = profileResult.data.role as string;
+      
+      // Debug logging
+      console.log('Login successful for user:', email);
+      console.log('User role from database:', userRole);
       
       localStorage.setItem('user_role', userRole);
       localStorage.setItem('is_logged_in', 'true');
       localStorage.setItem('user_email', email);
       localStorage.setItem('user_id', data.user.id);
+      
+      console.log('Stored in localStorage:', {
+        user_role: localStorage.getItem('user_role'),
+        is_logged_in: localStorage.getItem('is_logged_in')
+      });
 
       if (userRole === 'admin') {
+        console.log('Navigating to admin dashboard');
         navigate('/admin-dashboard');
-      } else if (userRole === 'hospital_staff') {
-        navigate('/hospital-dashboard');
-      } else if (userRole === 'blood_bank_staff') {
+      } else if (userRole === 'blood_bank_admin' || userRole === 'blood_bank_staff') {
+        console.log('Navigating to blood bank dashboard');
         navigate('/bloodbank-dashboard');
+      } else if (userRole === 'hospital_staff') {
+        console.log('Navigating to hospital dashboard');
+        navigate('/hospital-dashboard');
+      } else if (userRole === 'donor') {
+        console.log('Navigating to donor profile');
+        navigate('/donor/profile');
       } else {
-        navigate('/admin-dashboard');
+        // Fallback
+        console.log('Unknown role, redirecting to login:', userRole);
+        navigate('/login');
       }
     } catch (e: any) {
       setError(e.message || 'Login failed');

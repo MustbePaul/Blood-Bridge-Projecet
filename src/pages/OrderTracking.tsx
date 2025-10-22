@@ -45,7 +45,22 @@ const OrderTracking: React.FC = () => {
           .order('created_at', { ascending: false })
           .limit(500);
 
-        if (userHospitalId) query = query.eq('hospital_id', userHospitalId);
+        // Apply hospital filtering only if user's hospital has requests
+        if (userHospitalId) {
+          // First check if this hospital has any requests
+          const { data: hospitalRequests, error: checkError } = await supabase
+            .from('blood_request')
+            .select('request_id')
+            .eq('hospital_id', userHospitalId)
+            .limit(1);
+          
+          // Only filter by hospital if there are requests for this hospital
+          if (!checkError && hospitalRequests && hospitalRequests.length > 0) {
+            query = query.eq('hospital_id', userHospitalId);
+          } else {
+            console.log('No requests found for user hospital, showing all requests');
+          }
+        }
 
         const { data, error } = await query;
         if (error) throw error;
@@ -65,9 +80,9 @@ const OrderTracking: React.FC = () => {
       // Fallback schema: blood_requests
       if (!list || list.length === 0) {
         const { data, error } = await supabase
-          .from('blood_requests')
+          .from('blood_request')
           .select('*')
-          .order('requested_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(500);
         if (error) throw error;
         list = (data || []).map((r: any) => ({
@@ -79,7 +94,14 @@ const OrderTracking: React.FC = () => {
           status: r.request_status ?? r.status ?? 'pending',
           created_at: r.requested_at ?? r.created_at ?? null,
         }));
-        if (userHospitalId) list = list.filter((r) => r.hospital_id === userHospitalId);
+        // Apply hospital filtering only if user's hospital has requests in the dataset
+        if (userHospitalId) {
+          const hospitalRequests = list.filter((r) => r.hospital_id === userHospitalId);
+          if (hospitalRequests.length > 0) {
+            list = hospitalRequests;
+          }
+          // If no requests for user's hospital, show all (don't filter)
+        }
         if ((!list || list.length === 0) && primaryError) throw primaryError;
       }
 
@@ -99,8 +121,8 @@ const OrderTracking: React.FC = () => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'blood_request' }, fetchOrders)
         .subscribe();
       const ch2 = supabase
-        .channel('blood_requests-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'blood_requests' }, fetchOrders)
+        .channel('blood_request-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'blood_request' }, fetchOrders)
         .subscribe();
       return () => {
         supabase.removeChannel(ch1);

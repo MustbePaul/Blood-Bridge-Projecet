@@ -8,8 +8,11 @@ const Profile: React.FC = () => {
   const [userRole, setUserRole] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [fullName, setFullName] = useState('John Doe');
-  const [phoneNumber, setPhoneNumber] = useState('+1 234 567 8900');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [originalFullName, setOriginalFullName] = useState('');
+  const [originalPhoneNumber, setOriginalPhoneNumber] = useState('');
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,12 +33,13 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      const role = localStorage.getItem('user_role') || '';
-      setUserRole(role);
-
-      // Prefer Supabase profile for name/phone/email
-      const userId = localStorage.getItem('user_id') || '';
       try {
+        setLoading(true);
+        const role = localStorage.getItem('user_role') || '';
+        setUserRole(role);
+
+        // Prefer Supabase profile for name/phone/email
+        const userId = localStorage.getItem('user_id') || '';
         if (userId) {
           const { data, error } = await supabase
             .from('profiles')
@@ -43,24 +47,33 @@ const Profile: React.FC = () => {
             .eq('user_id', userId)
             .single();
           if (!error && data) {
-            setFullName(data.name || '');
-            setPhoneNumber(data.phone_number || '');
+            const fullNameValue = data.name || 'N/A';
+            const phoneNumberValue = data.phone_number || 'N/A';
+            
+            setFullName(fullNameValue);
+            setPhoneNumber(phoneNumberValue);
+            setOriginalFullName(fullNameValue);
+            setOriginalPhoneNumber(phoneNumberValue);
           }
         }
-      } catch {}
 
-      // Email from auth session if available
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const email = sessionData.session?.user?.email || localStorage.getItem('user_email') || '';
-        setUserEmail(email);
-      } catch {
-        setUserEmail(localStorage.getItem('user_email') || '');
-      }
+        // Email from auth session if available
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const email = sessionData.session?.user?.email || localStorage.getItem('user_email') || '';
+          setUserEmail(email);
+        } catch {
+          setUserEmail(localStorage.getItem('user_email') || '');
+        }
 
-      const savedPrefs = localStorage.getItem('notification_preferences');
-      if (savedPrefs) {
-        try { setNotificationPrefs(JSON.parse(savedPrefs)); } catch {}
+        const savedPrefs = localStorage.getItem('notification_preferences');
+        if (savedPrefs) {
+          try { setNotificationPrefs(JSON.parse(savedPrefs)); } catch {}
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoading(false);
       }
     };
     load();
@@ -69,7 +82,6 @@ const Profile: React.FC = () => {
   const [infoDialog, setInfoDialog] = useState<{open:boolean; title:string; message:string}>({open:false,title:'',message:''});
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const handleSave = async () => {
-    // In a real app, this would save to the database
     setIsEditing(false);
     try {
       const userId = localStorage.getItem('user_id') || '';
@@ -79,6 +91,10 @@ const Profile: React.FC = () => {
           .update({ name: fullName, phone_number: phoneNumber })
           .eq('user_id', userId);
         if (error) throw error;
+        
+        // Update original values after successful save
+        setOriginalFullName(fullName);
+        setOriginalPhoneNumber(phoneNumber);
       }
       setInfoDialog({open:true,title:'Saved',message:'Profile updated successfully.'});
     } catch (e: any) {
@@ -106,9 +122,9 @@ const Profile: React.FC = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset to original values
-    setFullName('John Doe');
-    setPhoneNumber('+1 234 567 8900');
+    // Reset to original values from database
+    setFullName(originalFullName);
+    setPhoneNumber(originalPhoneNumber);
   };
 
   const handlePasswordReset = async () => {
@@ -163,116 +179,124 @@ const Profile: React.FC = () => {
         }}>
           <h2 style={{ marginBottom: 20, color: '#333' }}>Personal Information</h2>
           
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Full Name</label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: 12, 
-                  border: '1px solid #ddd', 
-                  borderRadius: 4,
-                  fontSize: 16
-                }}
-              />
-            ) : (
-              <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 4 }}>{fullName}</div>
-            )}
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Email</label>
-            <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 4, color: '#666' }}>
-              {userEmail} (cannot be changed)
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <div style={{ color: '#666', fontSize: 16 }}>Loading profile information...</div>
             </div>
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Phone Number</label>
-            {isEditing ? (
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: 12, 
-                  border: '1px solid #ddd', 
-                  borderRadius: 4,
-                  fontSize: 16
-                }}
-              />
-            ) : (
-              <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 4 }}>{phoneNumber}</div>
-            )}
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Role</label>
-            <div style={{ 
-              padding: 12, 
-              background: '#FF5252', 
-              color: '#fff', 
-              borderRadius: 4,
-              textTransform: 'capitalize',
-              fontWeight: 'bold'
-            }}>
-              {userRole.replace('_', ' ')}
-            </div>
-          </div>
-
-          <div style={{ marginTop: 24 }}>
-            {isEditing ? (
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button
-                  onClick={handleSave}
-                  style={{ 
-                    padding: '12px 24px', 
-                    background: '#4CAF50', 
-                    color: '#fff', 
-                    border: 'none', 
-                    borderRadius: 4,
-                    fontSize: 16,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={handleCancel}
-                  style={{ 
-                    padding: '12px 24px', 
-                    background: '#f44336', 
-                    color: '#fff', 
-                    border: 'none', 
-                    borderRadius: 4,
-                    fontSize: 16,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
+          ) : (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Full Name</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      padding: 12, 
+                      border: '1px solid #ddd', 
+                      borderRadius: 4,
+                      fontSize: 16
+                    }}
+                  />
+                ) : (
+                  <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 4 }}>{fullName}</div>
+                )}
               </div>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                style={{ 
-                  padding: '12px 24px', 
-                  background: '#1976d2', 
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Email</label>
+                <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 4, color: '#666' }}>
+                  {userEmail} (cannot be changed)
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Phone Number</label>
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      padding: 12, 
+                      border: '1px solid #ddd', 
+                      borderRadius: 4,
+                      fontSize: 16
+                    }}
+                  />
+                ) : (
+                  <div style={{ padding: 12, background: '#f5f5f5', borderRadius: 4 }}>{phoneNumber}</div>
+                )}
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Role</label>
+                <div style={{ 
+                  padding: 12, 
+                  background: '#FF5252', 
                   color: '#fff', 
-                  border: 'none', 
                   borderRadius: 4,
-                  fontSize: 16,
-                  cursor: 'pointer'
-                }}
-              >
-                Edit Profile
-              </button>
-            )}
-          </div>
+                  textTransform: 'capitalize',
+                  fontWeight: 'bold'
+                }}>
+                  {userRole.replace('_', ' ')}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                {isEditing ? (
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      onClick={handleSave}
+                      style={{ 
+                        padding: '12px 24px', 
+                        background: '#4CAF50', 
+                        color: '#fff', 
+                        border: 'none', 
+                        borderRadius: 4,
+                        fontSize: 16,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      style={{ 
+                        padding: '12px 24px', 
+                        background: '#f44336', 
+                        color: '#fff', 
+                        border: 'none', 
+                        borderRadius: 4,
+                        fontSize: 16,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    style={{ 
+                      padding: '12px 24px', 
+                      background: '#1976d2', 
+                      color: '#fff', 
+                      border: 'none', 
+                      borderRadius: 4,
+                      fontSize: 16,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Edit Profile
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ 

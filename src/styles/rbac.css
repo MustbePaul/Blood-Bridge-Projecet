@@ -1,0 +1,19 @@
+/* Minimal CSS helpers for accessible hiding and role-based visibility toggles.
+   Do not rely on CSS alone for security — pair with RLS and TS guards. */
+
+/* Visually hide but keep accessible to screen readers */
+.visually-hidden {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+/* Generic hide */
+.is-hidden { display: none !important; }
+
+/* Example usage:
+  <nav class="is-hidden" data-role="system_admin"> ... </nav>
+  Toggle with JS based on current role -> element.classList.toggle('is-hidden', !isAllowed)
+*/

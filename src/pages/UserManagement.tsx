@@ -5,7 +5,7 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 
-type Role = 'admin' | 'hospital_staff' | 'blood_bank_staff';
+type Role = 'admin' | 'blood_bank_admin' | 'hospital_staff' | 'blood_bank_staff' | 'donor';
 
 interface ProfileRow {
   user_id: string;
@@ -25,9 +25,11 @@ interface Hospital {
 interface BloodBank {
   id: string;
   name: string;
+  location: string;
+  displayName: string;
 }
 
-const roles: Role[] = ['admin', 'hospital_staff', 'blood_bank_staff'];
+const roles: Role[] = ['admin', 'blood_bank_admin', 'hospital_staff', 'blood_bank_staff', 'donor'];
 
 const UserManagement: React.FC = () => {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -41,12 +43,59 @@ const UserManagement: React.FC = () => {
 
   // Fetch facilities
   useEffect(() => {
-    const fetchFacilities = async () => {
+const fetchFacilities = async () => {
       try {
-        const { data: hospitalData } = await supabase.from('hospitals').select('*');
-        const { data: bloodBankData } = await supabase.from('blood_banks').select('*');
-        setHospitals(hospitalData || []);
-        setBloodBanks(bloodBankData || []);
+        console.log('Fetching facilities...');
+        
+        const { data: hospitalData, error: hospitalError } = await supabase
+          .from('hospitals')
+          .select('id, hospital_name');
+        
+        const { data: bloodBankData, error: bloodBankError } = await supabase
+          .from('blood_banks')
+          .select('blood_bank_id, name, location');
+        
+        console.log('Hospital data:', hospitalData);
+        console.log('Blood bank data:', bloodBankData);
+        console.log('Hospital error:', hospitalError);
+        console.log('Blood bank error:', bloodBankError);
+        
+        if (hospitalError) {
+          console.error('Hospital query error:', hospitalError);
+        }
+        
+        if (bloodBankError) {
+          console.error('Blood bank query error:', bloodBankError);
+        }
+        
+        const mappedHospitals = (hospitalData || []).map((h: any) => ({ 
+          id: h.id, 
+          name: h.hospital_name 
+        }));
+        
+        const mappedBloodBanks = (bloodBankData || []).map((b: any) => {
+          // Format display name: Abbreviate name and add location
+          const abbreviatedName = b.name?.includes('MBTS') || b.name?.toLowerCase().includes('blood') 
+            ? 'MBTS' 
+            : (b.name?.substring(0, 10) || 'Unknown');
+          const displayName = b.location 
+            ? `${abbreviatedName} - ${b.location}` 
+            : abbreviatedName;
+            
+          return {
+            id: b.blood_bank_id,
+            name: b.name,
+            location: b.location || '',
+            displayName
+          };
+        });
+        
+        console.log('Mapped hospitals:', mappedHospitals);
+        console.log('Mapped blood banks:', mappedBloodBanks);
+        
+        setHospitals(mappedHospitals);
+        setBloodBanks(mappedBloodBanks);
+        
       } catch (e) {
         console.error('Failed to fetch facilities', e);
       }
@@ -84,16 +133,25 @@ const UserManagement: React.FC = () => {
     };
   }, []);
 
-  // Map assigned facility name
+  // Map assigned facility name and format role display
   const profilesWithFacility = useMemo(() => {
     return profiles.map(p => {
       let assignedFacilityName = '—';
       if (p.role === 'hospital_staff' && p.hospital_id) {
         assignedFacilityName = hospitals.find(h => h.id === p.hospital_id)?.name || '—';
-      } else if (p.role === 'blood_bank_staff' && p.blood_bank_id) {
-        assignedFacilityName = bloodBanks.find(b => b.id === p.blood_bank_id)?.name || '—';
+      } else if ((p.role === 'blood_bank_staff' || p.role === 'blood_bank_admin') && p.blood_bank_id) {
+        assignedFacilityName = bloodBanks.find(b => b.id === p.blood_bank_id)?.displayName || '—';
       }
-      return { ...p, assignedFacilityName };
+      
+      const roleDisplayName = {
+        'admin': 'System Admin',
+        'blood_bank_admin': 'Blood Bank Admin', 
+        'blood_bank_staff': 'Blood Bank Staff',
+        'hospital_staff': 'Hospital Staff',
+        'donor': 'Donor'
+      }[p.role as string] || p.role;
+      
+      return { ...p, assignedFacilityName, roleDisplayName };
     });
   }, [profiles, hospitals, bloodBanks]);
 
@@ -113,7 +171,7 @@ const UserManagement: React.FC = () => {
   const openEdit = (row: ProfileRow) => setEditing({ ...row });
   const closeEdit = () => setEditing(null);
 
-  const saveEdit = async () => {
+const saveEdit = async () => {
     if (!editing) return;
     setSaving(true);
     try {
@@ -122,7 +180,7 @@ const UserManagement: React.FC = () => {
         role: editing.role,
         phone_number: editing.phone_number,
         hospital_id: editing.role === 'hospital_staff' ? editing.hospital_id || null : null,
-        blood_bank_id: editing.role === 'blood_bank_staff' ? editing.blood_bank_id || null : null,
+        blood_bank_id: (editing.role === 'blood_bank_staff' || editing.role === 'blood_bank_admin') ? editing.blood_bank_id || null : null,
       };
       const { error } = await supabase
         .from('profiles')
@@ -155,7 +213,12 @@ const UserManagement: React.FC = () => {
       <PageHeader
         title="User Management"
         description="Manage system users (roles, hospital or blood bank assignment)"
-        actions={<Button variant="primary" onClick={fetchProfiles}>🔄 Refresh</Button>}
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <small style={{ color: '#666' }}>H: {hospitals.length} | BB: {bloodBanks.length}</small>
+            <Button variant="primary" onClick={fetchProfiles}>🔄 Refresh</Button>
+          </div>
+        }
       />
 
       <Card>
@@ -194,9 +257,9 @@ const UserManagement: React.FC = () => {
                     <tr key={p.user_id} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: 12, fontFamily: 'monospace' }}>{p.user_id}</td>
                       <td style={{ padding: 12 }}>{p.name || '—'}</td>
-                      <td style={{ padding: 12 }}>{p.role}</td>
+                      <td style={{ padding: 12 }}>{(p as any).roleDisplayName}</td>
                       <td style={{ padding: 12 }}>{p.phone_number || '—'}</td>
-                      <td style={{ padding: 12 }}>{p.assignedFacilityName || '—'}</td>
+                      <td style={{ padding: 12 }}>{(p as any).assignedFacilityName || '—'}</td>
                       <td style={{ padding: 12 }}>{p.created_at ? new Date(p.created_at).toLocaleString() : '—'}</td>
                       <td style={{ padding: 12 }}>
                         <Button variant="success" style={{ marginRight: 8 }} onClick={() => openEdit(p)}>✏️ Edit</Button>
@@ -242,7 +305,16 @@ const UserManagement: React.FC = () => {
                   onChange={e => setEditing({ ...editing, role: e.target.value })}
                   style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8 }}
                 >
-                  {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                  {roles.map(r => {
+                    const displayName = {
+                      'admin': 'System Admin',
+                      'blood_bank_admin': 'Blood Bank Admin', 
+                      'blood_bank_staff': 'Blood Bank Staff',
+                      'hospital_staff': 'Hospital Staff',
+                      'donor': 'Donor'
+                    }[r] || r;
+                    return <option key={r} value={r}>{displayName}</option>;
+                  })}
                 </select>
               </label>
 
@@ -255,21 +327,40 @@ const UserManagement: React.FC = () => {
                 />
               </label>
 
-              {(editing.role === 'hospital_staff' || editing.role === 'blood_bank_staff') && (
+{(editing.role === 'hospital_staff' || editing.role === 'blood_bank_staff' || editing.role === 'blood_bank_admin') && (
                 <label style={{ display: 'grid', gap: 6 }}>
-                  <span>{editing.role === 'hospital_staff' ? 'Hospital' : 'Blood Bank'}</span>
+                  <span style={{ fontWeight: '600' }}>
+                    {editing.role === 'hospital_staff' ? 'Assign to Hospital' : 'Assign to Blood Bank'}
+                    <span style={{ color: '#ff4444', marginLeft: 4 }}>*</span>
+                  </span>
                   <select
                     value={editing.role === 'hospital_staff' ? editing.hospital_id ?? '' : editing.blood_bank_id ?? ''}
                     onChange={e => editing.role === 'hospital_staff'
                       ? setEditing({ ...editing, hospital_id: e.target.value })
                       : setEditing({ ...editing, blood_bank_id: e.target.value })}
-                    style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8 }}
+                    style={{ 
+                      padding: 10, 
+                      border: '1px solid #ddd', 
+                      borderRadius: 8,
+                      background: '#fff'
+                    }}
                   >
-                    <option value="">— Select —</option>
+                    <option value="">— Select {editing.role === 'hospital_staff' ? 'Hospital' : 'Blood Bank'} —</option>
                     {editing.role === 'hospital_staff'
-                      ? hospitals.map(h => <option key={h.id} value={h.id}>{h.name}</option>)
-                      : bloodBanks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      ? (() => {
+                          console.log('Rendering hospital options:', hospitals);
+                          return hospitals.map(h => <option key={h.id} value={h.id}>{h.name}</option>);
+                        })()
+                      : (() => {
+                          console.log('Rendering blood bank options:', bloodBanks);
+                          return bloodBanks.map(b => <option key={b.id} value={b.id}>{b.displayName}</option>);
+                        })()}
                   </select>
+                  <small style={{ color: '#666', fontSize: '12px' }}>
+                    {editing.role === 'hospital_staff' 
+                      ? 'Hospital staff must be assigned to a specific hospital'
+                      : 'Blood bank staff must be assigned to a specific blood bank'}
+                  </small>
                 </label>
               )}
             </div>
